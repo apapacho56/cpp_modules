@@ -1,0 +1,119 @@
+# **************************************************************************** #
+#                                                                              #
+#                                                         :::      ::::::::    #
+#    notes.txt                                          :+:      :+:    :+:    #
+#                                                     +:+ +:+         +:+      #
+#    By: aparedes <aparedes@student.42.fr>          +#+  +:+       +#+         #
+#                                                 +#+#+#+#+#+   +#+            #
+#    Created: 2023/01/05 18:17:38 by aparedes          #+#    #+#              #
+#    Updated: 2023/01/05 19:09:49 by aparedes         ###   ########.fr        #
+#                                                                              #
+# **************************************************************************** #
+
+SOME NOTES
+
+Accuracy:	How close the mesuarement is to the real value
+Precision:	How much info it has about the quantity
+
+Intergers:				Because is rounded it could be nice to build
+						But not good to use in sphere, lack info
+Floating point numbers:	Better precision, no discard info
+						Poor accuracy, never fits exactly
+
+Floating point numbers representation	(IEEE-754 represetation)
+	float (4 bytes)					double(8 bytes)
+	EX:
+		seeeeeeeemmmmmmmmmmmmmmmmmmmmmmm    meaning
+		31                              0    bit #
+	s = sign bit, e = exponent, m = mantissa
+	(exponent giving its order of magnitude, and a mantissa 
+	specifying the actual digits of the number.)
+	Zero	= consider a special case wihtout sign
+	NaN		= non number value
+	info	= infinite
+	(could exist -/+ NaN,-/+ info)
+	
+	EX:
+
+	0      0x00000000
+	1.0    0x3f800000
+	0.5    0x3f000000
+	3      0x40400000
+	+inf   0x7f800000
+	-inf   0xff800000
+	+NaN   0x7fc00000 or 0x7ff00000
+	In general: 
+	number = (sign ? -1:1) * 2^(exponent) * 1.(mantissa bits)
+	
+	IEEE Numbers to consider:
+	Property									Value for float		Value for double
+	Largest representable number				3.402823466e+38		1.7976931348623157e+308
+	Smallest number without losing precision	1.175494351e-38		2.2250738585072014e-308
+	Smallest representable number(*)			1.401298464e-45		5e-324
+	Mantissa bits								23					52
+	Exponent bits								8					11
+	Epsilon(**)									1.1929093e-7		2.220446049250313e-16
+
+	Smallest number that we can use: 	2^-126  = 1.401298464e-45
+
+EFFECTIVE FP Programming
+	Equality:	Works with == operator but in fact make all rounded to make it fit in a word 
+(close enough)	that can be compared.
+				This will fail usually with trigo operations.
+				
+				In Epsilon case here is to be careful about this due to, 
+				#define EPSILON 1.0e-7
+ 				#define flt_equals(a, b) (fabs((a)-(b))
+				The precision of a float is not determined by magnitude.
+
+	Overflow:	when a float overflow is convinient leave it in +/- inf.
+				A 32-bit integer can represent any 9-digit decimal number, 
+				but a 32-bit float only offers about 7 digits of precision.
+				EX:
+
+				double magnitude(double re, double im)
+				{
+			    return sqrt(re*re + im*im);
+				}
+				Let's say both components are 1e200. The magnitude is 1.4142135e200, 
+				well within the range of a double. However, squaring 1e200 yields 1e400,
+				which is outside the range—you get infinity, whose square root is still 
+				infinity. Here is a much better way to write this function:
+				double magnitude(double re, double im)
+				{
+					double r;
+				
+					re = fabs(re);
+					im = fabs(im);
+					if (re > im) {
+						r = im/re;
+						return re*sqrt(1.0+r*r);
+					}
+					if (im == 0.0)
+						return 0.0;
+					r = re/im;
+					return im*sqrt(1.0+r*r);
+				}
+				All we did was rearrange the formula by
+				bringing an re or im outside the square root.
+				Which one we bring out depends on which one is bigger;
+				if we square im/re when im is larger, we still risk overflow.
+				If im is 1e200 and re is 1, clearly 
+				we don't want to square im/re, but squaring re/im
+				is ok since it is 1e-400 which is rounded to zero—close
+				enough to get the right answer. Notice the asymmetry: large magnitudes 
+				can get you lost at +inf, but small magnitudes end up as zero (not -inf),
+				which is a good approximation.
+	Loss of signficance:	Present issues of getting the right answer
+				This is the class of situations where you lose precision like
+				discarding info.
+				Keep the largest with the smallest number aware of how they are 
+				in the order of the sums.
+	Rule of the thumb:	Be aware of how many operations you make 
+	
+	*Keeping track of the value in integer is important to know that the number
+		storage is optimal.
+
+PRINTING FLOEATING POINT NUMBERS 
+	Commonly used %f for floating 
+
